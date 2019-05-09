@@ -9,7 +9,7 @@ ui <- fluidPage(
 
 		sidebarPanel(
 			fluidRow(
-				selectInput("test", "test:", choices = c("repeated measures anova","two way anova"))
+				selectInput("test", "test type:", choices = c("repeated measures anova","two way anova"))
 			),
 			fluidRow(
 				column(3,
@@ -44,8 +44,7 @@ ui <- fluidPage(
 				)
 			),
 			fluidRow(
-				plotOutput('plot'),
-				uiOutput('comments')
+				plotOutput('plot')
 			),			
 			#tags$a(href="manual.pdf", "open introduction in new window", target="new"),
 			h5("Susanne Blotwijk: effect size calculation"),
@@ -55,10 +54,11 @@ ui <- fluidPage(
 
 		mainPanel(
 			fluidRow(
-				tableOutput("averages")
+				tableOutput("matrixMeans")
 			),
 			fluidRow(
-				tableOutput('results')
+				tableOutput('tableEffects'),
+				uiOutput('comments')
 			),
 			width=8
 		)

@@ -1,6 +1,6 @@
 # shiny functionality
 # retrieve input when changed
-# add test dependent input (between, within, numbers, averages)
+# add test dependent input 
 # show specification
 # provide output using functions of susanne
 source("susanne.r")
@@ -22,61 +22,107 @@ source("susanne.r")
 library(reshape2)
 library(ggplot2)
 server <- function(input, output) {
+	
+	###############
+	# proces input
 
-	getInput <- reactive({
-		out <- list()
-		# validate
-		validate(
-			need(input$between, 'specify between group number factor levels'),
-			need(input$within, 'specify within group number factor levels')
-		)
-		# return
+	# process input: test, within and between # levels
+	getInDesign <- reactive({
+		.design <- list()
 		if(input$test=="two way anova"){
-			out <- list(test=input$test,wthn=as.numeric(input$within),btwn=as.numeric(input$between))
+			validate(
+				need(input$betweenmw, 'specify between group number factor levels'),
+				need(input$withinmw, 'specify within group number factor levels')
+			)
+			.design <- list(test=input$test,wthn=as.numeric(input$withinmw),btwn=as.numeric(input$betweenmw))
 		}
 		if(input$test=="repeated measures anova"){
-			# for(it in )
-			out <- list(test=input$test,wthn=as.numeric(input$within),btwn=as.numeric(input$between))
+			validate(
+				need(input$betweenrm, 'specify between group number factor levels'),
+				need(input$withinrm, 'specify within group number factor levels')
+			)
+			.design <- list(test=input$test,wthn=as.numeric(input$withinrm),btwn=as.numeric(input$betweenrm))
 		}
-		out
+		.design
 	})
-	getMeans <- reactive({
-		validate(
-			need(input$stddev, 'specify pooled standard deviation'),
-			need(input$corrrm, 'specify intra-unit correlation')
-		)
-		.means <- matrix(NA,ncol=input$within,nrow=input$between)
-		for(j in seq(input$within)){
-		for(i in seq(input$between)){
-			.means[i,j] <- as.numeric(eval(parse(text=paste0("input$range",i,"_",j))))
+	# process input: sd, cor (rm), interaction (T/F)
+	getInSpecs <- reactive({
+		.specs <- list()
+		inDesign <- getInDesign()
+		if(inDesign$test=="two way anova"){
+			validate(
+				need(input$stddev, 'specify pooled standard deviation'),
+				need(input$xabmw, 'interaction required or not ?')
+			)
+		}
+		if(inDesign$test=="repeated measures anova"){
+			validate(
+				need(input$stddev, 'specify pooled standard deviation'),
+				need(input$xabrm, 'interaction required or not ?'),
+				need(input$corrrm, 'specify intra-unit correlation')
+			)
+		}
+		.means <- matrix(NA,ncol=inDesign$wthn,nrow=inDesign$btwn)
+		.wlevels <- inDesign$wthn
+		.blevels <- inDesign$btwn
+		for(j in seq(.wlevels)){
+			for(i in seq(.blevels)){
+				.means[i,j] <- as.numeric(eval(parse(text=paste0("input$range",i,"_",j))))
 		}}
-		if(input$test=="two way anova"){
-			out <- list(means=.means,sd=as.numeric(input$stddev),xab=input$xabmw)
+		if(inDesign$test=="two way anova"){
+			.specs <- list(means=.means,sd=as.numeric(input$stddev),xab=input$xabmw)
 		}
-		if(input$test=="repeated measures anova"){
-			out <- list(means=.means,sd=as.numeric(input$stddev),cor=as.numeric(input$corrrm),xab=input$xabrm)
+		if(inDesign$test=="repeated measures anova"){
+			.specs <- list(means=.means,sd=as.numeric(input$stddev),cor=as.numeric(input$corrrm),xab=input$xabrm)
 		}
-		out
+		.specs
 	})
-	# getXab <- reactive({
-		# list(xab=input$xab)
-	# })
-	output$results <- renderTable({
-		# set <- getInput()
-		set <- getInput()
-		set2 <- getMeans()
-		# set3 <- getXab()
-		if(set$test=="repeated measures anova"){
-			.tmp <- effectsRepeatedMeasures(set2$means, set2$sd, set2$cor, set2$xab)
+	
+	#################
+	# generate output
+
+	# matrix of means (intermediate output)
+	output$matrixMeans <- renderUI({
+		inDesign <- getInDesign()
+		lapply(seq(inDesign$wthn), function(j){
+			column(width=2,
+				wellPanel(			
+					lapply(seq(inDesign$btwn),function(i){
+						if(inDesign$test=="repeated measures anova") lbl <- paste0("b",i,"_w",j)
+						if(inDesign$test=="two way anova") lbl <- paste0("a",i,"_b",j)
+						textInput(inputId = paste0("range",i,"_",j),label=lbl,value=0) 
+					})
+				)				
+			)
+		})
+	})
+	# visualization of matrix of means
+	output$plot <- renderPlot({
+		inSpecs <- getInSpecs()
+		.tmp <- data.frame(btw=seq(nrow(inSpecs$means)),inSpecs$means)
+		names(.tmp)[-1] <- paste('t',seq(ncol(inSpecs$means)))
+		.tmp <- melt(.tmp,id='btw')
+		ggplot(.tmp,aes(y=value,x=variable,group=btw,color=factor(btw))) + geom_line() + theme(legend.position = "none")
+	})
+	# add comments
+	output$comments <- renderPrint({
+		cat("effects for use in sample size calculation")
+	})
+	# table of effect sizes (final output)
+	output$tableEffects <- renderTable({
+		inDesign <- getInDesign()
+		inSpecs <- getInSpecs()
+		if(inDesign$test=="repeated measures anova"){
+			.tmp <- effectsRepeatedMeasures(inSpecs$means, inSpecs$sd, inSpecs$cor, inSpecs$xab)
 		}
-		if(set$test=="two way anova"){
-			.ttmp <- effectsMultiway(2,set2$means, set2$sd, set2$xab)
-			if(set2$xab=="yes"){
+		if(inDesign$test=="two way anova"){
+			.ttmp <- effectsMultiway(2,inSpecs$means, inSpecs$sd, inSpecs$xab)
+			if(inSpecs$xab=="yes"){
 				.ttmp <- rbind(.ttmp$mainEffects,c(.ttmp$interactionEffects,.ttmp$interactionDf))
 				.ttmp <- data.frame(.ttmp)
 				row.names(.ttmp) <- c("A","B","AxB")
 			}
-			if(set2$xab=="no"){
+			if(inSpecs$xab=="no"){
 				.ttmp <- data.frame(.ttmp$mainEffects)
 				row.names(.ttmp) <- c("A","B")
 			}
@@ -85,24 +131,27 @@ server <- function(input, output) {
 		}
 		data.frame(nms=dimnames(.tmp)[[1]],.tmp)
 	})
+	
+	################
+	# dynamic input: within and between # levels, sd, cor, interaction (T/F)
 	output$betweenrm <- renderUI({
 		if(input$test=='repeated measures anova'){
-			numericInput("between", "between: # levels", value = 2, min=1)
+			numericInput("betweenrm", "between: # levels", value = 2, min=1)
 		}
 	})
 	output$betweenmw <- renderUI({
 		if(input$test=='two way anova'){
-			numericInput("between", "A: # levels", value = 2, min=1)
+			numericInput("betweenmw", "A: # levels", value = 2, min=1)
 		}
 	})
 	output$withinrm <- renderUI({
 		if(input$test=='repeated measures anova'){
-			numericInput("within", "within: # levels", value = 3, min=1)
+			numericInput("withinrm", "within: # levels", value = 3, min=1)
 		}
 	})
 	output$withinmw <- renderUI({
 		if(input$test=='two way anova'){
-			numericInput("within", "B: # levels", value = 3, min=1)
+			numericInput("withinmw", "B: # levels", value = 3, min=1)
 		}
 	})
 	output$xrm <- renderUI({
@@ -115,14 +164,6 @@ server <- function(input, output) {
 			selectInput("xabmw", "x", choices = c("yes","no"))
 		}
 	})
-	output$comments <- renderPrint({
-		getMeans()$xab
-	})
-	# output$numbers <- renderUI({
-		# if(input$test=='two way anova'){
-			# textInput('numbers','factor specific # factor levels (+=main, *=interaction), eg., 3;2;2','2;2')
-		# }
-	# })
 	output$stddevrm <- renderUI({
 		if(input$test=='repeated measures anova'){
 			textInput('stddev','sd','1')	
@@ -138,26 +179,5 @@ server <- function(input, output) {
 			textInput('stddev','sd','1')		
 		}
 	})
-	output$plot <- renderPlot({
-		set2 <- getMeans()
-		plot(1:10)
-		.tmp <- data.frame(btw=1:2,set2$means)
-		names(.tmp)[-1] <- paste('t',1:ncol(.tmp))
-		.tmp <- melt(.tmp,id='btw')
-		ggplot(.tmp,aes(y=value,x=variable,group=btw)) + geom_line()
-	})
-
-	output$averages <- renderUI({
-		set <- getInput()
-		lapply(seq(set$wthn), function(j){
-			column(width=2,
-				wellPanel(			
-					lapply(seq(set$btwn),function(i){
-						textInput(inputId = paste0("range",i,"_",j),label=paste0("",i,"_",j),value=0) 
-					})
-				)				
-			)
-		})
-	})
-
+	
 }
