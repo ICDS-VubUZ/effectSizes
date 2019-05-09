@@ -114,6 +114,8 @@ server <- function(input, output) {
 		inSpecs <- getInSpecs()
 		if(inDesign$test=="repeated measures anova"){
 			.tmp <- effectsRepeatedMeasures(inSpecs$means, inSpecs$sd, inSpecs$cor, inSpecs$xab)
+			.tab <- data.frame(effect=rownames(.tmp),.tmp)
+			names(.tab) <- c('effect','size','df')
 		}
 		if(inDesign$test=="two way anova"){
 			.ttmp <- effectsMultiway(2,inSpecs$means, inSpecs$sd, inSpecs$xab)
@@ -126,10 +128,14 @@ server <- function(input, output) {
 				.ttmp <- data.frame(.ttmp$mainEffects)
 				row.names(.ttmp) <- c("A","B")
 			}
-			names(.ttmp) <- c("effect","df")
+			# names(.ttmp) <- c("effect","df")
 			.tmp <- .ttmp
+			names(.tmp) <- c("size","df")
+			.tab <- data.frame(effect=dimnames(.tmp)[[1]],.tmp)
 		}
-		data.frame(nms=dimnames(.tmp)[[1]],.tmp)
+		.tab <- data.frame(lapply(data.frame(.tab[,1],round(.tab[,2],4),round(.tab[,3],0)),as.character),stringsAsFactors=FALSE)
+		names(.tab) <- c('effect','size','df')
+		.tab
 	})
 	
 	################
@@ -141,7 +147,7 @@ server <- function(input, output) {
 	})
 	output$betweenmw <- renderUI({
 		if(input$test=='two way anova'){
-			numericInput("betweenmw", "A: # levels", value = 2, min=1)
+			numericInput("betweenmw", "a: # levels", value = 2, min=1)
 		}
 	})
 	output$withinrm <- renderUI({
@@ -151,17 +157,17 @@ server <- function(input, output) {
 	})
 	output$withinmw <- renderUI({
 		if(input$test=='two way anova'){
-			numericInput("withinmw", "B: # levels", value = 3, min=1)
+			numericInput("withinmw", "b: # levels", value = 3, min=1)
 		}
 	})
 	output$xrm <- renderUI({
 		if(input$test=='repeated measures anova'){
-			selectInput("xabrm", "x", choices = c("yes","no"))
+			selectInput("xabrm", "interaction", choices = c("yes","no"))
 		}
 	})
 	output$xmw <- renderUI({
 		if(input$test=='two way anova'){
-			selectInput("xabmw", "x", choices = c("yes","no"))
+			selectInput("xabmw", "interaction", choices = c("yes","no"))
 		}
 	})
 	output$stddevrm <- renderUI({
