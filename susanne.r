@@ -16,7 +16,7 @@ effectsMultiway <- function(nrOfFactors, means, cellSD, interactions = "yes"){
   for(i in 1:nrOfFactors){# 1-way or more
     
     factoriMeans <- apply(means,i,mean)
-    mainEffects[i,1:2] <- c(sum((factoriMeans-grandMean)^2)/(sz[i]-1), sz[i]-1)
+    mainEffects[i,1:2] <- c(sum((factoriMeans-grandMean)^2)/(sz[i]-1)/sz[i], sz[i]-1)
     
     if(i < nrOfFactors){# 2-way or more
       for(j in (i+1):nrOfFactors){
@@ -25,7 +25,7 @@ effectsMultiway <- function(nrOfFactors, means, cellSD, interactions = "yes"){
         differences  <- sweep(interactionijMeans+grandMean, 1, factoriMeans, FUN="-")
         differences  <- sweep(differences, 2, factorjMeans, FUN="-")
 
-        interactionEffects[i,j-1] <- sum(differences^2)/(sz[i]-1)/(sz[j]-1)
+        interactionEffects[i,j-1] <- sum(differences^2)/(sz[i]-1)/(sz[j]-1)/sz[i]/sz[j]
         interactionDf[i,j-1] <- (sz[i]-1)*(sz[j]-1)
         
         if(j < nrOfFactors){# 3-way or more
@@ -44,7 +44,7 @@ effectsMultiway <- function(nrOfFactors, means, cellSD, interactions = "yes"){
             differences <- sweep(differences, c(1,3), interactionikMeans, FUN="-")
             differences <- sweep(differences, c(2,3), interactionjkMeans, FUN="-")
             
-            extraVar <- extraVar + sum(differences)^2/(sz[i]-1)/(sz[j]-1)/(sz[k]-1)
+            extraVar <- extraVar + sum(differences)^2/(sz[i]-1)/(sz[j]-1)/(sz[k]-1)/sz[i]/sz[j]/sz[k]
             
             if(k < nrOfFactors){ #4-way
               for(l in (k+1):nrOfFactors){
@@ -76,7 +76,7 @@ effectsMultiway <- function(nrOfFactors, means, cellSD, interactions = "yes"){
                 differences <- sweep(differences, c(2,3,4), interactionjklMeans, FUN="-")
                 differences <- sweep(differences, c(1,2,4), interactionijlMeans, FUN="-")
                 
-                extraVar <- extraVar + sum(differences)^2/(sz[i]-1)/(sz[j]-1)/(sz[k]-1)/(sz[l]-1)
+                extraVar <- extraVar + sum(differences)^2/(sz[i]-1)/(sz[j]-1)/(sz[k]-1)/(sz[l]-1)/sz[i]/sz[j]/sz[k]/sz[l]
               }
             }
           }
@@ -127,9 +127,9 @@ effectsRepeatedMeasures <- function(means, cellSD, correlation, interactions = "
     colnames(effects) <- c("Effect", "df")
   }
   
-  betweenMeans <- apply(means-grandMean, 1, mean)
-  withinMeans  <- apply(means-grandMean, 2, mean)
-  explVar <- sweep(means-grandMean,1,betweenMeans, FUN = "-")
+  betweenMeans <- apply(means-grandMean, 1, mean)/sz[1]
+  withinMeans  <- apply(means-grandMean, 2, mean)/sz[2]
+  explVar <- sweep(means-grandMean,1,betweenMeans, FUN = "-")/sz[1]/sz[2]
   explVar <- sum(sweep(explVar,2, withinMeans, FUN = "-")^2)/(sz[1]-1)/(sz[2]-1)
   if(interactions == "yes"){
     effects[3,1] <- explVar/(explVar+errorVar)
