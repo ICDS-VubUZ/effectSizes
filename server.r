@@ -115,26 +115,26 @@ server <- function(input, output) {
 		if(inDesign$test=="repeated measures anova"){
 			.tmp <- effectsRepeatedMeasures(inSpecs$means, inSpecs$sd, inSpecs$cor, inSpecs$xab)
 			.tab <- data.frame(effect=rownames(.tmp),.tmp)
-			names(.tab) <- c('effect','size','df')
+			names(.tab) <- c('effect','f','eta2','df')
 		}
 		if(inDesign$test=="two way anova"){
 			.ttmp <- effectsMultiway(2,inSpecs$means, inSpecs$sd, inSpecs$xab)
 			if(inSpecs$xab=="yes"){
-				.ttmp <- rbind(.ttmp$mainEffects,c(.ttmp$interactionEffects,.ttmp$interactionDf))
-				.ttmp <- data.frame(.ttmp)
+				.ttmp <- rbind(data.frame(.ttmp$FmainEffects,.ttmp$mainEffects),c(.ttmp$FinteractionEffects,.ttmp$interactionEffects,.ttmp$FinteractionEffects))
+				# .ttmp <- data.frame(.ttmp)
 				row.names(.ttmp) <- c("A","B","AxB")
 			}
 			if(inSpecs$xab=="no"){
-				.ttmp <- data.frame(.ttmp$mainEffects)
+				.ttmp <- data.frame(.ttmp$FmainEffects,.ttmp$mainEffects)
 				row.names(.ttmp) <- c("A","B")
 			}
 			# names(.ttmp) <- c("effect","df")
 			.tmp <- .ttmp
-			names(.tmp) <- c("size","df")
+			names(.tmp) <- c("f","eta2","df")
 			.tab <- data.frame(effect=dimnames(.tmp)[[1]],.tmp)
 		}
-		.tab <- data.frame(lapply(data.frame(.tab[,1],round(.tab[,2],4),round(.tab[,3],0)),as.character),stringsAsFactors=FALSE)
-		names(.tab) <- c('effect','size','df')
+		.tab <- data.frame(lapply(data.frame(.tab[,1],round(.tab[,2],4),round(.tab[,3],4),round(.tab[,4],0)),as.character),stringsAsFactors=FALSE)
+		names(.tab) <- c('effect','f','eta2','df')
 		.tab
 	})
 	

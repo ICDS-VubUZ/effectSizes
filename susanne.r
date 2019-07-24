@@ -94,11 +94,14 @@ effectsMultiway <- function(nrOfFactors, means, cellSD, interactions = "yes"){
   }
   
   mainEffects[,1] <-  mainEffects[,1]/(mainEffects[,1]+errorVar)
+  FmainEffects <- (mainEffects[,1]/(1-mainEffects[,1]))^0.5
+  FinteractionEffects <- (interactionEffects/(1-interactionEffects))^0.5
   
   if(interactions == "yes"){
-    results <- list(mainEffects = mainEffects, interactionEffects = interactionEffects, interactionDf = interactionDf)
+    results <- list(FmainEffects = FmainEffects, mainEffects = mainEffects, FinteractionEffects = FinteractionEffects,
+                    interactionEffects = interactionEffects, interactionDf = interactionDf)
   }else{
-    results <- list(mainEffects = mainEffects)
+    results <- list(FmainEffects = FmainEffects, mainEffects = mainEffects)
   }
   
     return(results)
@@ -118,13 +121,13 @@ effectsRepeatedMeasures <- function(means, cellSD, correlation, interactions = "
   extraVar <- 0
   
   if(interactions == "yes"){
-    effects   <- matrix(nrow = 3, ncol = 2)
+    effects   <- matrix(nrow = 3, ncol = 3)
     rownames(effects) <- c("Between effect", "Within effect", "Within-Between")
-    colnames(effects) <- c("Effect", "df")
+    colnames(effects) <- c("f","eta^2", "df")
   }else{
-    effects   <- matrix(nrow = 2, ncol = 2)
+    effects   <- matrix(nrow = 3, ncol = 3)
     rownames(effects) <- c("Between effect", "Within effect")
-    colnames(effects) <- c("Effect", "df")
+    colnames(effects) <- c("f","eta^2", "df")
   }
   
   betweenMeans <- apply(means-grandMean, 1, mean)/sz[1]
@@ -132,19 +135,36 @@ effectsRepeatedMeasures <- function(means, cellSD, correlation, interactions = "
   explVar <- sweep(means-grandMean,1,betweenMeans, FUN = "-")/sz[1]/sz[2]
   explVar <- sum(sweep(explVar,2, withinMeans, FUN = "-")^2)/(sz[1]-1)/(sz[2]-1)
   if(interactions == "yes"){
-    effects[3,1] <- explVar/(explVar+errorVar)
-    effects[3,2] <- (sz[1]-1)*(sz[2]-1)
+    effects[3,2] <- explVar/(explVar+errorVar)
+    effects[3,3] <- (sz[1]-1)*(sz[2]-1)
+    effects[3,1] <- (effects[3,2]/(1-effects[3,2]))^0.5
   }else{
     extraVar <- explVar
   }
   
   explVar      <- sum(betweenMeans^2)/(sz[1]-1)
-  effects[1,1] <- explVar/(explVar+cellSD^2+extraVar)
-  effects[1,2] <- sz[1]-1
+  effects[1,2] <- explVar/(explVar+cellSD^2+extraVar)
+  effects[1,3] <- sz[1]-1
+  effects[1,1] <- (effects[1,2]/(1-effects[1,2]))^0.5
   
   explVar      <- sum(withinMeans^2)/(sz[2]-1)
-  effects[2,1] <- explVar/(explVar+errorVar+extraVar)
-  effects[2,2] <- sz[2]-1
+  effects[2,2] <- explVar/(explVar+errorVar+extraVar)
+  effects[2,3] <- sz[2]-1
+  effects[2,1] <- (effects[2,2]/(1-effects[2,2]))^0.5
   
   return(effects)
 }
+
+## Test ----
+
+# means <- matrix(c(0,0,2,2),nrow = 2)
+# nrOfFactors <- 2
+# cellSD <- 4
+
+# results <- effectsMultiway(nrOfFactors, means, cellSD)
+
+# means2 <- matrix(1:6, nrow = 2, ncol = 3)
+# cellSD <- 2
+# correlation <- 0.3
+
+# results2 <- effectsRepeatedMeasures(means2, cellSD, correlation)
