@@ -120,7 +120,7 @@ server <- function(input, output) {
 		if(inDesign$test=="two way anova"){
 			.ttmp <- effectsMultiway(2,inSpecs$means, inSpecs$sd, inSpecs$xab)
 			if(inSpecs$xab=="yes"){
-				.ttmp <- rbind(data.frame(.ttmp$FmainEffects,.ttmp$mainEffects),c(.ttmp$FinteractionEffects,.ttmp$interactionEffects,.ttmp$FinteractionEffects))
+				.ttmp <- rbind(data.frame(.ttmp$FmainEffects,.ttmp$mainEffects),c(.ttmp$FinteractionEffects,.ttmp$interactionEffects,.ttmp$interactionDf))
 				# .ttmp <- data.frame(.ttmp)
 				row.names(.ttmp) <- c("A","B","AxB")
 			}
