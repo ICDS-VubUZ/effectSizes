@@ -130,10 +130,10 @@ effectsRepeatedMeasures <- function(means, cellSD, correlation, interactions = "
     colnames(effects) <- c("f","eta^2", "df")
   }
   
-  betweenMeans <- apply(means-grandMean, 1, mean)/sz[1]
-  withinMeans  <- apply(means-grandMean, 2, mean)/sz[2]
-  explVar <- sweep(means-grandMean,1,betweenMeans, FUN = "-")/sz[1]/sz[2]
-  explVar <- sum(sweep(explVar,2, withinMeans, FUN = "-")^2)
+  betweenMeans <- apply(means-grandMean, 1, mean)
+  withinMeans  <- apply(means-grandMean, 2, mean)
+  explVar <- sweep(means-grandMean,1,betweenMeans, FUN = "-")
+  explVar <- sum(sweep(explVar,2, withinMeans, FUN = "-")^2)/sz[1]/sz[2]
   if(interactions == "yes"){
     effects[3,2] <- explVar/(explVar+errorVar)
     effects[3,3] <- (sz[1]-1)*(sz[2]-1)
@@ -142,12 +142,12 @@ effectsRepeatedMeasures <- function(means, cellSD, correlation, interactions = "
     extraVar <- explVar
   }
   
-  explVar      <- sum(betweenMeans^2)
+  explVar      <- sum(betweenMeans^2)/sz[1]
   effects[1,2] <- explVar/(explVar+cellSD^2+extraVar)
   effects[1,3] <- sz[1]-1
   effects[1,1] <- (effects[1,2]/(1-effects[1,2]))^0.5
   
-  explVar      <- sum(withinMeans^2)
+  explVar      <- sum(withinMeans^2)/sz[2]
   effects[2,2] <- explVar/(explVar+errorVar+extraVar)
   effects[2,3] <- sz[2]-1
   effects[2,1] <- (effects[2,2]/(1-effects[2,2]))^0.5
