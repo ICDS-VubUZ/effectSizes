@@ -125,7 +125,7 @@ effectsRepeatedMeasures <- function(means, cellSD, correlation, interactions = "
     rownames(effects) <- c("Between effect", "Within effect", "Within-Between")
     colnames(effects) <- c("f","eta^2", "df")
   }else{
-    effects   <- matrix(nrow = 3, ncol = 3)
+    effects   <- matrix(nrow = 2, ncol = 3)
     rownames(effects) <- c("Between effect", "Within effect")
     colnames(effects) <- c("f","eta^2", "df")
   }
